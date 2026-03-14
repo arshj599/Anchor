@@ -1,0 +1,155 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras import layers, models, Model
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import os
+
+FILES = {
+    'heel.csv':   {'offset': 315, 'strike_label': 0, 'stability_label': 0},
+    'front.csv':  {'offset': 156, 'strike_label': 1, 'stability_label': 1},
+    'both.csv':   {'offset': 0,   'strike_label': 2, 'stability_label': 2}
+}
+
+SAMPLES_PER_CATEGORY = 400
+TIME_STEPS = 100
+FEATURES = 4
+
+def load_and_augment_data(filename, config):
+    try:
+        df = pd.read_csv(filename, header=None)
+    except FileNotFoundError:
+        print(f"Error: {filename} not found. Please upload it to Colab.")
+        return None, None, None
+
+    start_row = config['offset']
+
+    if len(df) < start_row + TIME_STEPS:
+         print(f" Error: {filename} is too short for the requested offset and window.")
+         return None, None, None
+
+    base_sequence = df.iloc[start_row : start_row + TIME_STEPS].to_numpy()
+
+    X_augmented = []
+    y_strike = []
+    y_stability = []
+
+    category_name = filename.split('.')[0]
+    save_dir = os.path.join('synthetic_data', category_name)
+    os.makedirs(save_dir, exist_ok=True)
+
+    print(f"Processing {filename}... Base shape: {base_sequence.shape}")
+    print(f"Saving generated samples to: {save_dir}/")
+
+    for i in range(SAMPLES_PER_CATEGORY):
+        noise = np.random.normal(0, 150.0, base_sequence.shape)
+        new_sample = base_sequence + noise
+        new_sample = np.maximum(new_sample, 0)
+
+        sample_path = os.path.join(save_dir, f'sample_{i}.csv')
+        pd.DataFrame(new_sample).to_csv(sample_path, header=False, index=False)
+
+        X_augmented.append(new_sample)
+        y_strike.append(config['strike_label'])
+        y_stability.append(config['stability_label'])
+
+    return np.array(X_augmented), np.array(y_strike), np.array(y_stability)
+
+X_all = []
+y_strike_all = []
+y_stab_all = []
+
+print("--- Generating Synthetic Dataset ---")
+
+for fname, conf in FILES.items():
+    x, y1, y2 = load_and_augment_data(fname, conf)
+    if x is not None:
+        X_all.append(x)
+        y_strike_all.append(y1)
+        y_stab_all.append(y2)
+
+if not X_all:
+    raise ValueError("No data loaded! Make sure CSV files are uploaded.")
+
+X = np.concatenate(X_all)
+y_strike = np.concatenate(y_strike_all)
+y_stab = np.concatenate(y_stab_all)
+
+scaler = StandardScaler()
+N, T, F = X.shape
+X_scaled = scaler.fit_transform(X.reshape(N * T, F)).reshape(N, T, F)
+
+X_train, X_test, y_strike_train, y_strike_test, y_stab_train, y_stab_test = train_test_split(
+    X_scaled, y_strike, y_stab, test_size=0.10, random_state=42, shuffle=True
+)
+
+print(f"\nData Ready.")
+print(f"Training Shapes: {X_train.shape}")
+print(f"Testing Shapes:  {X_test.shape}")
+
+input_layer = layers.Input(shape=(TIME_STEPS, FEATURES))
+
+x = layers.Conv1D(filters=32, kernel_size=3, activation='relu', padding='same')(input_layer)
+x = layers.MaxPooling1D(pool_size=2)(x)
+x = layers.Dropout(0.2)(x)
+
+x = layers.Conv1D(filters=64, kernel_size=3, activation='relu', padding='same')(x)
+x = layers.GlobalAveragePooling1D()(x)
+x = layers.Dense(64, activation='relu')(x)
+
+strike_out = layers.Dense(3, activation='softmax', name='strike_output')(x)
+stability_out = layers.Dense(3, activation='softmax', name='stability_output')(x)
+
+model = Model(inputs=input_layer, outputs=[strike_out, stability_out])
+
+model.compile(
+    optimizer='adam',
+    loss={
+        'strike_output': 'sparse_categorical_crossentropy',
+        'stability_output': 'sparse_categorical_crossentropy'
+    },
+    metrics={
+        'strike_output': 'accuracy',
+        'stability_output': 'accuracy'
+    }
+)
+
+model.summary()
+
+print("\n--- Starting Training ---")
+history = model.fit(
+    X_train,
+    {'strike_output': y_strike_train, 'stability_output': y_stab_train},
+    validation_data=(X_test, {'strike_output': y_strike_test, 'stability_output': y_stab_test}),
+    epochs=20,
+    batch_size=32,
+    verbose=1
+)
+
+print("\n--- Final Test Results ---")
+results = model.evaluate(X_test, {'strike_output': y_strike_test, 'stability_output': y_stab_test})
+print(f"Strike Prediction Accuracy:    {results[3]*100:.2f}%")
+print(f"Stability Prediction Accuracy: {results[4]*100:.2f}%")
+
+plt.figure(figsize=(12, 4))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['strike_output_accuracy'], label='Train Strike Acc')
+plt.plot(history.history['val_strike_output_accuracy'], label='Test Strike Acc')
+plt.title('Strike Pattern Accuracy')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['stability_output_accuracy'], label='Train Stability Acc')
+plt.plot(history.history['val_stability_output_accuracy'], label='Test Stability Acc')
+plt.title('Stability Accuracy')
+plt.legend()
+plt.show()
+
+model.save('stable_gait_model.h5')
+print("\nModel saved as 'stable_gait_model.h5'")
+
+print("\nZipping synthetic data for download...")
+os.system("zip -r synthetic_data.zip synthetic_data")
+print("Data zipped as 'synthetic_data.zip'")
