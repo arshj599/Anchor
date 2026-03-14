@@ -1,0 +1,55 @@
+#include <Wire.h>          // Needed for I2C communication with IMU
+#include <MPU6050.h>       // MPU6050 library
+
+// ----------- SENSOR PINS -----------
+const int FSR1 = A0;
+const int FSR2 = A1;
+const int FSR3 = A2;
+const int FSR4 = A3;
+
+// ----------- IMU OBJECT -----------
+MPU6050 imu;
+
+// Variables to store IMU data
+int16_t ax, ay, az;   // accelerometer
+int16_t gx, gy, gz;   // gyroscope
+
+void setup() {
+  Serial.begin(9600);       // Start serial communication
+  Wire.begin();             // Initialize I2C bus
+
+  // Initialize IMU
+  imu.initialize();
+  if (imu.testConnection()) {
+    Serial.println("IMU connected successfully!");
+  } else {
+    Serial.println("IMU connection failed.");
+  }
+}
+
+void loop() {
+  // ---- READ FSRs ----
+  int fsr1Value = analogRead(FSR1);
+  int fsr2Value = analogRead(FSR2);
+  int fsr3Value = analogRead(FSR3);
+  int fsr4Value = analogRead(FSR4);
+
+  // ---- READ IMU ----
+  imu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+  // ---- PRINT SENSOR VALUES ----
+  Serial.print("FSR1: "); Serial.print(fsr1Value);
+  Serial.print(" | FSR2: "); Serial.print(fsr2Value);
+  Serial.print(" | FSR3: "); Serial.print(fsr3Value);
+  Serial.print(" | FSR4: "); Serial.print(fsr4Value);
+
+  Serial.print(" || Accel: X="); Serial.print(ax);
+  Serial.print(" Y="); Serial.print(ay);
+  Serial.print(" Z="); Serial.print(az);
+
+  Serial.print(" | Gyro: X="); Serial.print(gx);
+  Serial.print(" Y="); Serial.print(gy);
+  Serial.print(" Z="); Serial.println(gz);
+
+  delay(100); // small delay to avoid flooding serial monitor
+}
