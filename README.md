@@ -22,6 +22,7 @@ Implemented in Python & PyTorch. Classifies gait patterns with **> 90% accuracy*
 
 ### Web App
 `index.html` – App for maritime workers that processes the data, provides actionable feedback, and displays key metrics.
+**Direct link to use the app:** [https://arshj599.github.io/Anchor/](https://arshj599.github.io/Anchor/)
 
 ## Additional Resources
 - **Blueprint:** [Google Drive](https://drive.google.com/file/d/1Vz2iM6o0mhUT4oa-eQICUak0AmUm4gR_/view?usp=sharing)  
