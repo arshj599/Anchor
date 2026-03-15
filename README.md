@@ -1,4 +1,4 @@
-# Anchor
+
 # Anchor
 *Insert 200-character tagline here*
 
@@ -12,13 +12,13 @@ Two STL files for CAD (Computer-Aided Design) of the shoe: internal and external
 - **Exterior CAD:** [View on Tinkercad](https://www.tinkercad.com/things/lvyw53suT2L-stable-redesign-2?sharecode=BXeA5KTb9yUF4DtWIMENSM9CNgfN1p1fH3T_BuieiSo)
 
 ### Arduino Code
-Code written for the Arduino Uno R3 (language TBD). Handles component connections and data collection.
+Code written for the Arduino Uno R3. Handles component connections and data collection.
 
 ### Data Files
 Four CSV files representing walking patterns 1–4. Each file captures a different gait pattern for classification purposes.
 
 ### Detection Algorithm
-Implemented in Python & PyTorch. Classifies gait patterns with **90% accuracy** using a 1D CNN.
+Implemented in Python & PyTorch. Classifies gait patterns with **> 90% accuracy** using a 1D CNN.
 
 ### Web App
 `index.html` – App for maritime workers that processes the data, provides actionable feedback, and displays key metrics.
