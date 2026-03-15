@@ -1,6 +1,6 @@
 
 # Anchor
-*ANCHOR detects fatigue-driven gait changes in maritime workers in real-time, alerting them via wearable IoT to prevent slips and falls while mapping high-risk zones across the vessel.*
+*Anchor detects fatigue-driven gait changes in maritime workers in real-time, alerting them via wearable IoT to prevent slips and falls while mapping high-risk zones across the vessel.*
 
 ## Project Components
 
